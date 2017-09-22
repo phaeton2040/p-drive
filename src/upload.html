@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload file with node</title>
+    <script
+        src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+
+    <style>
+        .container {
+            width: 400px;
+            height: 400px;
+            margin: 100px auto;
+            background-color: #c1c1c1;
+            padding: 10px;
+        }
+
+        #uploadedImage {
+            display: block;
+            margin: 100px auto;
+            height: 200px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <input id="fileSelect" type="file" value="Upload file" />
+    <button id="upl">Upload</button>
+</div>
+
+<script>
+
+    $(function() {
+        var fileSelect = $('#fileSelect');
+        var button = $('#upl');
+
+        button.on('click', function(event) {
+            var files = fileSelect[0].files;
+
+            if (!files.length)
+                return;
+
+            var formData = new FormData();
+
+            formData.append('image', files[0]);
+
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.type.indexOf('image') !== -1) {
+                        $('#uploadedImage').detach();
+                        $('#uploadedVideo').detach();
+                        $('.container').append('<img id="uploadedImage" src="/file/' + response.file + '" />');
+                    }
+
+                    if (response.type.indexOf('video') !== -1) {
+                        $('#uploadedImage').detach();
+                        $('#uploadedVideo').detach();
+                        $('.container').append('<video height="200" width="300" controls autoplay id="uploadedVideo"><source src="/file/' + response.file + '"/></video>');
+                    }
+                }
+            })
+        })
+    })
+
+</script>
+
+</body>
+</html>
