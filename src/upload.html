@@ -28,8 +28,9 @@
 <body>
 
 <div class="container">
-    <input id="fileSelect" type="file" value="Upload file" />
+    <input id="fileSelect" type="file" value="Upload file" multiple />
     <button id="upl">Upload</button>
+    <span id="percentage"></span>
 </div>
 
 <script>
@@ -46,7 +47,9 @@
 
             var formData = new FormData();
 
-            formData.append('image', files[0]);
+            for (var i = 0; i < files.length; i++) {
+                formData.append('image', files[i]);
+            }
 
             $.ajax({
                 url: '/upload',
@@ -54,6 +57,15 @@
                 data: formData,
                 processData: false,
                 contentType: false,
+                xhr: function() {
+                    var xhr = new XMLHttpRequest();
+
+                    xhr.upload.addEventListener("progress", function(evt){
+                       $('#percentage').text(Math.round((evt.loaded/evt.total) * 100) + '%');
+                    });
+
+                    return xhr;
+                },
                 success: function(response) {
                     if (response.type.indexOf('image') !== -1) {
                         $('#uploadedImage').detach();
@@ -64,7 +76,7 @@
                     if (response.type.indexOf('video') !== -1) {
                         $('#uploadedImage').detach();
                         $('#uploadedVideo').detach();
-                        $('.container').append('<video height="200" width="300" controls autoplay id="uploadedVideo"><source src="/file/' + response.file + '"/></video>');
+                        $('.container').append('<video height="200" width="300" controls type="video/mp4" id="uploadedVideo"><source src="/file/' + response.file + '"/></video>');
                     }
                 }
             })

@@ -21,25 +21,16 @@ app.get('/upload', (req, res) => {
 
 app.post('/upload', (req, res) => {
 
-    let file, mtype;
+    let file, mtype, writable;
     const busboy = new Busboy({ headers: req.headers });
 
     busboy.on('file', (fieldName, fileStream, fileName, encoding, mimetype) => {
         console.log(fieldName, fileName, encoding, mimetype);
-        // const writable = fs.createWriteStream(path.normalize(__dirname + '/../uploads/' + fileName));
-        const writable = gfs.createWriteStream({
+
+        writable = gfs.createWriteStream({
             mode: 'w',
             content_type: mimetype,
             filename: fileName
-        });
-
-        writable.on('close', file => {
-           console.log('GridFS finished with ' + file.filename);
-            res.json({
-                ok: true,
-                file: file.filename,
-                type: mtype
-            })
         });
 
         writable.on('error', (err) => {
@@ -48,7 +39,7 @@ app.post('/upload', (req, res) => {
 
         fileStream.pipe(writable);
 
-        fileStream.on('end', function () {
+        fileStream.on('end', () => {
             console.log('Busboy filestream finished with ' + fileName);
             file = fileName;
             mtype = mimetype;
@@ -56,32 +47,108 @@ app.post('/upload', (req, res) => {
     });
 
     busboy.on('finish', () => {
-       console.log('Busboy finished');
+        console.log('Busboy finished');
+        writable.on('close', file => {
+            console.log('GridFS finished with ' + file.filename);
+            res.json({
+                ok: true,
+                file: file._id,
+                type: mtype
+            });
+        });
     });
 
     req.pipe(busboy);
 });
 
 app.get('/file/:file', async (req, res) => {
-   const file = req.params.file;
-   const readStream = gfs.createReadStream({filename: file});
+    const id = req.params.file;
+    const readStream = gfs.createReadStream({_id: id});
 
-   readStream.on('error', err => {
-      return res.json(err);
-   });
+    gfs.findOne({ _id: id}, function (err, file) {
+        // console.log(file);
+        const fileSize = file.length;
+        const range = req.headers.range;
 
-   return readStream.pipe(res);
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-")
+            const start = parseInt(parts[0], 10)
+            const end = parts[1]
+                ? parseInt(parts[1], 10)
+                : fileSize-1;
+            const chunksize = (end-start)+1
+            const data = gfs.createReadStream({_id: id}, {
+                range: {
+                    startPos: start,
+                    endPos: end
+                }
+            });
+            console.log(start, end, fileSize);
+            const head = {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunksize,
+                'Content-Type': file.contentType,
+            };
+            res.writeHead(206, head);
+            data.pipe(res);
+        } else {
+            res.set('Content-Type', file.contentType);
+            readStream.pipe(res);
+        }
+
+
+    });
+
+    readStream.on('error', err => {
+        return res.json(err);
+    });
+});
+
+app.get('/test', (req, res) => {
+    res.sendFile(path.normalize(__dirname + '/../src/test.html'));
+});
+
+app.get('/video', function(req, res) {
+    const p = __dirname + '/../test.mp4';
+    const stat = fs.statSync(path.normalize(p));
+    const fileSize = stat.size;
+    const range = req.headers.range;
+    if (range) {
+        const parts = range.replace(/bytes=/, "").split("-")
+        const start = parseInt(parts[0], 10)
+        const end = parts[1]
+            ? parseInt(parts[1], 10)
+            : fileSize-1
+        const chunksize = (end-start)+1
+        const file = fs.createReadStream(p, {start, end})
+        const head = {
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunksize,
+            'Content-Type': 'video/mp4',
+        }
+        res.writeHead(206, head);
+        file.pipe(res);
+    } else {
+        const head = {
+            'Content-Length': fileSize,
+            'Content-Type': 'video/mp4',
+        }
+        res.writeHead(200, head)
+        fs.createReadStream(p).pipe(res)
+    }
 });
 
 process.env.PORT = 1134;
 
 app.listen(process.env.PORT, err => {
-  if (err)
-    throw new Error(err);
+    if (err)
+        throw new Error(err);
 
-  if (process.env.NODE_ENV.trim() !== 'test') {
-    console.log('App started');
-  }
+    if (process.env.NODE_ENV.trim() !== 'test') {
+        console.log('App started');
+    }
 })
 
 export default app;
