@@ -5,7 +5,8 @@ export const createFolder = async (req, res) => {
     const { name } = req.body;
     const ancestors = req.body.ancestors ? req.body.ancestors.split(',') : [];
     const parent = ancestors ? ancestors[ancestors.length - 1] : null;
-    const newFolder = new Folder({ name, ancestors, parent });
+
+    const newFolder = new Folder({ name, ancestors, parent, user: req.user.id });
 
     try {
         return res.status(201).json({ folder: await newFolder.save() });
@@ -51,6 +52,7 @@ export const getFolderByPath = async(req, res) => {
     const ancestors = req.params.path.split('/');
     const ancestorsIds = await Folder.find({name: ancestors}, {_id: 1})
         .then(results => results.map(a => a._id));
+    console.log(ancestorsIds);
     const folders = await Folder.find({
         ancestors: ancestorsIds,
         parent: ancestorsIds[ancestorsIds.length - 1]

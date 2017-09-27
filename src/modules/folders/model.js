@@ -6,7 +6,11 @@ const FolderSchema = new Schema({
         required: true
     },
     ancestors: [Schema.Types.ObjectId],
-    parent: Schema.Types.ObjectId
+    parent: Schema.Types.ObjectId,
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }
 }, { timestamps: true });
 
 export default mongoose.model('Folder', FolderSchema)

@@ -7,17 +7,18 @@ import {
     getFolderByPath,
     removeFolder
 } from './controller';
+import {verifyAuth} from '../../config/verifyAuth';
 
 const routes = new Router();
 
 // post
-routes.post('/folders', createFolder);
-routes.post('/folders/:id', editFolder);
+routes.post('/folders', verifyAuth, createFolder);
+routes.post('/folders/:id', verifyAuth, editFolder);
 
 // get
-routes.get('/folders', getAllFolders);
-routes.get('/folders/:id', getFolder);
-routes.get('/:path(*)', getFolderByPath);
+routes.get('/folders', verifyAuth, getAllFolders);
+routes.get('/folders/:id', verifyAuth, getFolder);
+routes.get('/folders/path/:path(*)', verifyAuth, getFolderByPath);
 
 // delete
 routes.delete('/folders', removeFolder);

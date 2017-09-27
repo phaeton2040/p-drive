@@ -5,7 +5,6 @@ import jwt from 'jsonwebtoken';
 import {secret} from '../../config';
 
 const UserSchema = new Schema({
-    username: {type: String, lowercase: true, unique: true, required: [true, "can't be blank"], match: [/^[a-zA-Z0-9]+$/, 'is invalid'], index: true},
     email: {type: String, lowercase: true, unique: true, required: [true, "can't be blank"], match: [/\S+@\S+\.\S+/, 'is invalid'], index: true},
     hash: String,
     salt: String
@@ -16,6 +15,8 @@ UserSchema.plugin(uniqueValidator, {message: 'is already taken.'});
 UserSchema.methods.setPassword = function(password){
     this.salt = crypto.randomBytes(16).toString('hex');
     this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex');
+
+    return this;
 };
 
 UserSchema.methods.validPassword = function(password) {
@@ -32,18 +33,23 @@ UserSchema.methods.generateJWT = function() {
 
     return jwt.sign({
         id: this._id,
-        username: this.username,
+        email: this.email,
         exp: parseInt(exp.getTime() / 1000),
     }, secret);
 };
 
-UserSchema.methods.toAuthJSON = function(){
+UserSchema.methods.toAuthJSON = function() {
     return {
-        username: this.username,
+        id: this._id,
         email: this.email,
-        token: this.generateJWT(),
-        bio: this.bio,
-        image: this.image
+        token: this.generateJWT()
+    };
+};
+
+UserSchema.methods.getInfo = function() {
+    return {
+        id: this._id,
+        email: this.email
     };
 };
 
