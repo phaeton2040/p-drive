@@ -17,11 +17,11 @@ routes.post('/folders/:id', verifyAuth, editFolder);
 
 // get
 routes.get('/folders', verifyAuth, getAllFolders);
+routes.get('/folders/path', verifyAuth, getFolderByPath);
 routes.get('/folders/:id', verifyAuth, getFolder);
-routes.get('/folders/path/:path(*)', verifyAuth, getFolderByPath);
 
 // delete
-routes.delete('/folders', removeFolder);
+routes.delete('/folders', verifyAuth, removeFolder);
 
 
 export default routes;

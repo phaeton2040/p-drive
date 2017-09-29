@@ -29,7 +29,11 @@ app.post('/upload', (req, res) => {
         writable = gfs.createWriteStream({
             mode: 'w',
             content_type: mimetype,
-            filename: fileName
+            filename: fileName,
+            metadata: {
+                user: '59ce4ca20034c838985b155a',
+                folder: '59ce4ca20034c838985b155b'
+            }
         });
 
         writable.on('error', (err) => {
@@ -39,16 +43,13 @@ app.post('/upload', (req, res) => {
         fileStream.pipe(writable);
 
         fileStream.on('end', () => {
-            console.log('Busboy filestream finished with ' + fileName);
             file = fileName;
             mtype = mimetype;
         });
     });
 
     busboy.on('finish', () => {
-        console.log('Busboy finished');
         writable.on('close', file => {
-            console.log('GridFS finished with ' + file.filename);
             res.json({
                 ok: true,
                 fileId: file._id,

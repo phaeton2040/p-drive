@@ -1,4 +1,5 @@
 import User from './model';
+import Folder from '../folders/model';
 
 export const createUser = async (req, res) => {
     const {email, password} = req.body;
@@ -10,8 +11,9 @@ export const createUser = async (req, res) => {
 
     try {
         const newUser = await new User({email}).setPassword(password).save();
+        const newFolder = await new Folder({name: 'Home', ancestors: [], parent: null, user: newUser._id}).save();
 
-        return res.status(201).json({ user: newUser.toAuthJSON() });
+        return res.status(201).json({ user: newUser.toAuthJSON(), folder: newFolder });
     } catch(e) {
         return res.status(500)
             .json({ error: true, message: e.message });

@@ -1,4 +1,5 @@
 import Folder from './model';
+import { gfs } from '../../config/grid-fs-config';
 
 
 export const createFolder = async (req, res) => {
@@ -35,32 +36,60 @@ export const getFolder = async (req, res) => {
             .json({ error: true, message: 'No folder id specified' });
 
     try {
-        const folder = Folder.findOne({ _id: id });
+        const folder = await Folder.findOne({ _id: id, user: req.user.id });
+        const childFolders = await Folder.find({ parent: id });
+        const childFiles = await gfs.files.find({
+            metadata: {
+                user: req.user.id,
+                folder: id
+            }
+        }).toArray();
 
         return res.status(200).json({
             error: false,
-            contact: await folder
+            folder: folder,
+            children: {
+                folders: childFolders,
+                files: childFiles
+            }
         });
 
     } catch(e) {
         return res.status(404)
-            .json({ error: true, message: 'Folder not found' });
+            .json({ error: true, message: e });
     }
 };
 
-export const getFolderByPath = async(req, res) => {
-    const ancestors = req.params.path.split('/');
-    const ancestorsIds = await Folder.find({name: ancestors}, {_id: 1})
-        .then(results => results.map(a => a._id));
-    console.log(ancestorsIds);
-    const folders = await Folder.find({
-        ancestors: ancestorsIds,
-        parent: ancestorsIds[ancestorsIds.length - 1]
-    });
+export const getFolderByPath = async (req, res) => {
+    const ancestors = req.query.path.split('/');
 
     try {
-        return res.status(200).json({ folders });
+        const ancestorsIds = await Folder.find({name: ancestors}, {_id: 1})
+            .then(results => results.map(a => a._id));
+        const parent = ancestorsIds[ancestorsIds.length - 1].toString();
+
+        const folder = await Folder.findOne({ _id: parent });
+        const childFolders = await Folder.find({
+            user: req.user.id,
+            parent
+        });
+        const childFiles = await gfs.files.find({
+            metadata: {
+                user: req.user.id,
+                folder: parent
+            }
+        }).toArray();
+
+        return res.status(200).json({
+            error: false,
+            folder: folder,
+            children: {
+                folders: childFolders,
+                files: childFiles
+            }
+        });
     } catch (e) {
+        console.log(e);
         return res.status(404)
             .json({ error: true, message: 'Folder not found' });
     }
@@ -75,7 +104,7 @@ export const editFolder = async (req, res) => {
             .json({ error: true, message: 'No folder id specified' });
 
     try {
-        const folder = Folder.update({ _id: id }, { $set: {
+        const folder = Folder.update({ _id: id, user: req.user.id }, { $set: {
             name
         }});
 
@@ -92,10 +121,11 @@ export const editFolder = async (req, res) => {
 export const removeFolder = (req, res) => {
     const { id } = req.body;
 
-    if (!id)
+    if (!id) {
         return res.status(400).json({ error: true, message: 'No folder id specified' });
+    }
 
-    Folder.findOne({ _id: id })
+    Folder.findOne({ _id: id, user: req.user.id })
         .remove()
         .then(() => {
             res.status(200).json({ error: false });
