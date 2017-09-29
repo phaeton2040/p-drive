@@ -71,8 +71,11 @@
             }
 
             $.ajax({
-                url: '/upload',
+                url: '/api/files/upload',
                 type: 'POST',
+                headers: {
+                    "Authorization": "JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5Y2U0Y2EyMDAzNGM4Mzg5ODViMTU1YSIsImVtYWlsIjoicGhhZXRvbjIwNDBAZ21haWwuY29tIiwiZXhwIjoxNTExODc2MjU4LCJpYXQiOjE1MDY2OTIyNTh9.01XMxzZxNwGE_SFOnFykFXIgQ0BEcS-_czjeSXc6liA"
+                },
                 data: formData,
                 processData: false,
                 contentType: false,
@@ -89,13 +92,13 @@
                     if (response.type.indexOf('image') !== -1) {
                         $('#uploadedImage').detach();
                         $('#uploadedVideo').detach();
-                        $('.container').append('<img id="uploadedImage" src="/file/' + response.fileId + '" />');
+                        $('.container').append('<img id="uploadedImage" src="/api/file/' + response.fileId + '" />');
                     }
 
                     if (response.type.indexOf('video') !== -1) {
                         $('#uploadedImage').detach();
                         $('#uploadedVideo').detach();
-                        $('.container').append('<video height="300" width="400" controls type="video/mp4" id="uploadedVideo"><source src="/video/' + response.fileId + '"/></video>');
+                        $('.container').append('<video height="300" width="400" controls type="video/mp4" id="uploadedVideo"><source src="/api/video/' + response.fileId + '"/></video>');
                     }
                 }
             })
